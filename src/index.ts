@@ -378,6 +378,61 @@ function calcularImpostosNF(
 }
 
 // ============================================================================
+// AUDITORIA ANÔNIMA (Privacy by Design)
+// ============================================================================
+
+interface AuditEntry {
+  id: string;
+  ts: string;
+  tipo: string;
+  consulta: string;
+  hash_resposta: string;
+  status: string;
+}
+
+// Gera UUID v4
+function generateUUID(): string {
+  return crypto.randomUUID();
+}
+
+// Gera hash SHA-256 da resposta (para integridade, não identificação)
+async function hashData(data: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const dataBuffer = encoder.encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', dataBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 16);
+}
+
+// Log de auditoria em memória (será persistido via Durable Object SQL)
+const auditLog: AuditEntry[] = [];
+
+async function registrarAuditoria(tipo: string, consulta: string, resposta: string, status: string): Promise<string> {
+  const id = generateUUID();
+  const hash = await hashData(resposta);
+
+  const entry: AuditEntry = {
+    id,
+    ts: new Date().toISOString(),
+    tipo,
+    consulta,
+    hash_resposta: hash,
+    status
+  };
+
+  auditLog.push(entry);
+
+  // Mantém apenas últimos 1000 registros em memória
+  if (auditLog.length > 1000) {
+    auditLog.shift();
+  }
+
+  console.log(`[AUDIT] ${entry.ts} | ${tipo} | ${consulta} | ${status} | ${id}`);
+
+  return id;
+}
+
+// ============================================================================
 // MCP AGENT - PADRÃO CLOUDFLARE
 // ============================================================================
 
@@ -442,37 +497,43 @@ export class FiscalBRMCP extends McpAgent {
 
           const atividadePrincipal = data.atividade_principal?.[0] || {};
 
+          const resultado = {
+            sucesso: true,
+            dados: {
+              cnpj: validacao.formatado,
+              razao_social: data.nome || '',
+              nome_fantasia: data.fantasia || '',
+              situacao: data.situacao || '',
+              porte: data.porte || '',
+              capital_social: parseFloat(data.capital_social) || 0,
+              atividade_principal: {
+                codigo: atividadePrincipal.code || '',
+                descricao: atividadePrincipal.text || ''
+              },
+              endereco: {
+                logradouro: data.logradouro || '',
+                numero: data.numero || '',
+                bairro: data.bairro || '',
+                municipio: data.municipio || '',
+                uf: data.uf || '',
+                cep: data.cep || ''
+              },
+              data_abertura: data.abertura || ''
+            },
+            nota: "Fonte: ReceitaWS (dados públicos da Receita Federal). Ao consultar, você declara legítimo interesse conforme LGPD."
+          };
+
+          // Registra auditoria anônima (sem dados identificáveis do usuário)
+          await registrarAuditoria('consultar_cnpj', cnpjLimpo, JSON.stringify(resultado), 'sucesso');
+
           return {
             content: [{
               type: "text",
-              text: JSON.stringify({
-                sucesso: true,
-                dados: {
-                  cnpj: validacao.formatado,
-                  razao_social: data.nome || '',
-                  nome_fantasia: data.fantasia || '',
-                  situacao: data.situacao || '',
-                  porte: data.porte || '',
-                  capital_social: parseFloat(data.capital_social) || 0,
-                  atividade_principal: {
-                    codigo: atividadePrincipal.code || '',
-                    descricao: atividadePrincipal.text || ''
-                  },
-                  endereco: {
-                    logradouro: data.logradouro || '',
-                    numero: data.numero || '',
-                    bairro: data.bairro || '',
-                    municipio: data.municipio || '',
-                    uf: data.uf || '',
-                    cep: data.cep || ''
-                  },
-                  data_abertura: data.abertura || ''
-                },
-                nota: "Fonte: ReceitaWS (dados públicos da Receita Federal). Ao consultar, você declara legítimo interesse conforme LGPD."
-              }, null, 2)
+              text: JSON.stringify(resultado, null, 2)
             }]
           };
         } catch (error) {
+          await registrarAuditoria('consultar_cnpj', cnpjLimpo, String(error), 'erro');
           return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: `Erro ao consultar API: ${error}` }, null, 2) }] };
         }
       }
