@@ -447,7 +447,6 @@ export class FiscalBRMCP extends McpAgent {
               type: "text",
               text: JSON.stringify({
                 sucesso: true,
-                fonte: "ReceitaWS",
                 dados: {
                   cnpj: validacao.formatado,
                   razao_social: data.nome || '',
@@ -468,7 +467,8 @@ export class FiscalBRMCP extends McpAgent {
                     cep: data.cep || ''
                   },
                   data_abertura: data.abertura || ''
-                }
+                },
+                nota: "Fonte: ReceitaWS (dados públicos da Receita Federal). Ao consultar, você declara legítimo interesse conforme LGPD."
               }, null, 2)
             }]
           };
