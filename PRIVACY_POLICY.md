@@ -98,10 +98,8 @@ Podemos atualizar esta política periodicamente. Alterações significativas ser
 
 Para questões sobre privacidade:
 
-- **E-mail**: privacidade@datarisk.io
-- **Empresa**: DATARISK.IO SOLUCOES ANALITICAS E TECNOLOGICAS SA
-- **CNPJ**: 21.483.255/0001-22
-- **Endereço**: Tv. Manoel Ramos de Souza, 100 - Ingleses do Rio Vermelho - Florianópolis/SC - CEP 88058-180
+- **Desenvolvedor**: Jhonata Emerick Ramos
+- **E-mail**: contato@jhonataemerick.com
 
 ## 13. Disposições Finais
 
@@ -110,4 +108,4 @@ Esta política é regida pelas leis brasileiras, em especial a Lei Geral de Prot
 ---
 
 **Fiscal BR** - Assistente Fiscal Brasileiro
-Desenvolvido por DATARISK.IO
+Desenvolvido por Jhonata Emerick Ramos
