@@ -518,9 +518,9 @@ export class FiscalBRMCP extends McpAgent {
                 uf: data.uf || '',
                 cep: data.cep || ''
               },
-              data_abertura: data.abertura || ''
-            },
-            nota: "Fonte: ReceitaWS (dados públicos da Receita Federal). Ao consultar, você declara legítimo interesse conforme LGPD."
+              data_abertura: data.abertura || '',
+              aviso_legal: "📋 Fonte: ReceitaWS | Dados públicos da Receita Federal | Ao consultar, você declara legítimo interesse (LGPD)"
+            }
           };
 
           // Registra auditoria anônima (sem dados identificáveis do usuário)
