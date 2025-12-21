@@ -10,8 +10,12 @@
 	"compatibility_flags": ["nodejs_compat"],
 	"migrations": [
 		{
-			"new_sqlite_classes": ["FiscalBRMCP"],
+			"new_sqlite_classes": ["MyMCP"],
 			"tag": "v1"
+		},
+		{
+			"renamed_classes": [{"from": "MyMCP", "to": "FiscalBRMCP"}],
+			"tag": "v2"
 		}
 	],
 	"durable_objects": {
