@@ -408,7 +408,7 @@ export class FiscalBRMCP extends McpAgent {
       })
     );
 
-    // Tool: Consultar CNPJ (via API externa)
+    // Tool: Consultar CNPJ (via ReceitaWS - termos de uso claros)
     this.server.tool(
       "consultar_cnpj",
       "Consulta dados de uma empresa pelo CNPJ na Receita Federal (razão social, endereço, situação cadastral, atividades)",
@@ -422,32 +422,42 @@ export class FiscalBRMCP extends McpAgent {
         }
 
         try {
-          const response = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${cnpjLimpo}`);
+          const response = await fetch(`https://receitaws.com.br/v1/cnpj/${cnpjLimpo}`);
 
           if (!response.ok) {
             if (response.status === 404) {
               return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: 'CNPJ não encontrado' }, null, 2) }] };
+            }
+            if (response.status === 429) {
+              return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: 'Limite de consultas excedido. Aguarde alguns segundos.' }, null, 2) }] };
             }
             return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: `Erro: ${response.status}` }, null, 2) }] };
           }
 
           const data = await response.json() as any;
 
+          if (data.status === 'ERROR') {
+            return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: data.message || 'Erro na consulta' }, null, 2) }] };
+          }
+
+          const atividadePrincipal = data.atividade_principal?.[0] || {};
+
           return {
             content: [{
               type: "text",
               text: JSON.stringify({
                 sucesso: true,
+                fonte: "ReceitaWS",
                 dados: {
                   cnpj: validacao.formatado,
-                  razao_social: data.razao_social || '',
-                  nome_fantasia: data.nome_fantasia || '',
-                  situacao: data.descricao_situacao_cadastral || '',
+                  razao_social: data.nome || '',
+                  nome_fantasia: data.fantasia || '',
+                  situacao: data.situacao || '',
                   porte: data.porte || '',
-                  capital_social: data.capital_social || 0,
+                  capital_social: parseFloat(data.capital_social) || 0,
                   atividade_principal: {
-                    codigo: data.cnae_fiscal?.toString() || '',
-                    descricao: data.cnae_fiscal_descricao || ''
+                    codigo: atividadePrincipal.code || '',
+                    descricao: atividadePrincipal.text || ''
                   },
                   endereco: {
                     logradouro: data.logradouro || '',
@@ -457,7 +467,7 @@ export class FiscalBRMCP extends McpAgent {
                     uf: data.uf || '',
                     cep: data.cep || ''
                   },
-                  data_abertura: data.data_inicio_atividade || ''
+                  data_abertura: data.abertura || ''
                 }
               }, null, 2)
             }]
@@ -556,30 +566,15 @@ export class FiscalBRMCP extends McpAgent {
           };
         }
 
-        try {
-          const response = await fetch(`https://brasilapi.com.br/api/ncm/v1/${ncmLimpo}`);
-          if (response.ok) {
-            const data = await response.json() as any;
-            return {
-              content: [{
-                type: "text",
-                text: JSON.stringify({
-                  sucesso: true,
-                  dados: {
-                    codigo: ncmLimpo,
-                    descricao: data.descricao || 'Descrição não disponível',
-                    ipi: 0,
-                    pis: 1.65,
-                    cofins: 7.6,
-                    origem: 'BrasilAPI'
-                  }
-                }, null, 2)
-              }]
-            };
-          }
-        } catch (e) {}
-
-        return { content: [{ type: "text", text: JSON.stringify({ sucesso: false, erro: 'NCM não encontrado' }, null, 2) }] };
+        return {
+          content: [{
+            type: "text",
+            text: JSON.stringify({
+              sucesso: false,
+              erro: 'NCM não encontrado na base local. NCMs disponíveis: 84713019, 85171231, 85287200, 64039990, 22030000, 21069010, 33049990, 94032000, 02011000, 10059010'
+            }, null, 2)
+          }]
+        };
       }
     );
 
