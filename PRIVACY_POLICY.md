@@ -99,7 +99,7 @@ Podemos atualizar esta política periodicamente. Alterações significativas ser
 Para questões sobre privacidade:
 
 - **Desenvolvedor**: Jhonata Emerick Ramos
-- **E-mail**: contato@jhonataemerick.com
+- **E-mail**: jhonata.emerick@gmail.com
 
 ## 13. Disposições Finais
 
